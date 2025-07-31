@@ -1,0 +1,33 @@
+name: Daily Email Automation
+on:
+  schedule:
+    - cron: '0 8 * * *'  # 8:00 AM UTC daily
+  workflow_dispatch:     # Allow manual trigger
+
+jobs:
+  send-daily-email:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake Up Replit App
+        run: |
+          echo "Waking up Replit app..."
+          curl -s "https://workspace.th106.replit.app/" || echo "Wake attempt completed"
+          sleep 10
+          
+      - name: Trigger Daily Email
+        run: |
+          echo "Triggering daily email..."
+          
+          response=$(curl -s -w "%{http_code}" \
+            "https://workspace.th106.replit.app/force-email-now" \
+            -o response.txt)
+          
+          echo "Response code: $response"
+          cat response.txt
+          
+          if [ "$response" -eq 200 ]; then
+            echo "✅ Daily email triggered successfully"
+          else
+            echo "❌ Email trigger failed with code $response"
+            exit 1
+          fi
