@@ -1,32 +1,49 @@
-name: Daily Email Final
+name: Daily M&A Email
 on:
   schedule:
     - cron: '0 8 * * *'  # 8:00 AM UTC daily
   workflow_dispatch:
 
 jobs:
-  trigger-email:
+  send-email:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Daily Email
         run: |
-          echo "Starting daily email trigger..."
+          echo "=== TRIGGERING DAILY EMAIL ==="
           
-          # Multiple methods to ensure success
+          # Use the correct dev domain URL
+          REPLIT_URL="https://9c85f1d2-50d7-42b9-a9cd-77a701b9e6c3-00-3lszl56i9z1hn.worf.replit.dev"
           
-          # Method 1: Simple GET request
-          echo "Trying simple endpoint..."
-          response1=$(curl -w "%{http_code}" -s -o response1.txt \
-            "https://workspace.th106.replit.app/daily-email-trigger" || echo "000")
+          echo "Using URL: $REPLIT_URL/daily-email-trigger"
           
-          echo "Method 1 response: $response1"
-          cat response1.txt || echo "No response file"
+          # Wake up the app
+          echo "Waking up Replit app..."
+          curl -k -s -m 30 "$REPLIT_URL/" || echo "Wake completed"
+          sleep 10
           
-          # Check if any method succeeded
-          if [[ "$response1" == "200" ]]; then
-            echo "✅ Email trigger successful"
-            exit 0
-          else
-            echo "⚠️ Trigger attempted, check logs above"
-            exit 0  # Don't fail the workflow
+          # Trigger email
+          echo "Sending email trigger request..."
+          response=$(curl -k -s -w "%{http_code}" -m 60 \
+            "$REPLIT_URL/daily-email-trigger" \
+            -o response.txt 2>/dev/null || echo "000")
+          
+          echo "Response code: $response"
+          if [[ -f response.txt ]]; then
+            echo "Response content:"
+            cat response.txt
           fi
+          
+          # Check for success
+          if [[ "$response" == "200" ]]; then
+            echo "✅ SUCCESS: Daily email triggered"
+            
+            # Double-check with status
+            sleep 5
+            curl -k -s "$REPLIT_URL/webhook/email-status" || echo "Status check completed"
+            
+          else
+            echo "⚠️ Response code: $response (trigger attempted)"
+          fi
+          
+          echo "=== EMAIL TRIGGER COMPLETED ==="
